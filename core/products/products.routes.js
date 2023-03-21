@@ -3,22 +3,15 @@
  */
 
 const { Router } = require('express');
-const { faker } = require('@faker-js/faker');
+
+const ProductsService = require('./product.service');
+const { successResponse } = require('../../utils/successResponse.util');
 
 const router = Router();
+const productService = new ProductsService();
 
-router.get('/', (req, res) => {
-  const products = [];
-  const { size } = req.query;
-  const limit = size || 10;
-
-  for (let i = 0; i < limit; i++) {
-    products.push({
-      name: faker.commerce.productName(),
-      price: parseInt(faker.commerce.price(), 10),
-      image: faker.image.imageUrl()
-    })
-  }
+router.get('/', async (req, res) => {
+  const products = await productService.find();
 
   res.json(products);
 });
@@ -31,50 +24,51 @@ router.get('/filter', (req, res) => {
   });
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const { id } = req.params; // tal como se define en la ruta es como se recibe
+  const product = await productService.findOne(id);
 
-  if (id === '999') {
-    res.status(404).json({
+  res.json(product);
+});
+
+router.post('/', async (req, res) => {
+  const body = req.body;
+  const newProduct = await productService.create(body);
+  const response = successResponse(newProduct, 'Product created');
+
+  res.status(201).json(response);
+});
+
+router.patch('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const product = await productService.update(id, body);
+    const response = successResponse(product);
+
+    res.json(response);
+  } catch (error) {
+    res.status(400).json({
       ok: false,
-      msg: 'not found'
-    });
-  } else {
-    res.json({
-      id,
-      name: 'Product',
-      price: 1000
+      msg: 'Something went wrong',
+      error: error.message
     });
   }
 });
 
-router.post('/', (req, res) => {
-  const body = req.body;
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productService.delete(id);
 
-  res.status(201).json({
-    message: 'Created',
-    data: body
-  });
-});
-
-router.patch('/:id', (req, res) => {
-  const { id } = req.params;
-  const body = req.body;
-
-  res.json({
-    message: 'update',
-    data: body,
-    id
-  });
-});
-
-router.delete('/:id', (req, res) => {
-  const { id } = req.params;
-
-  res.json({
-    message: 'Deleted',
-    id
-  });
+    res.json(product);
+  } catch (error) {
+    res.status(400).json({
+      ok: false,
+      msg: 'Something went wrong',
+      error: error.message
+    });
+  }
 });
 
 module.exports = router;
