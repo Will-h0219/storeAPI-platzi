@@ -3,6 +3,11 @@
  */
 
 const { Router } = require('express');
+
+const { validatorHandler } = require('../../middlewares/validator.handler');
+const { createUserSchema, getUserSchema, updateUserSchema } = require('../../schemas/user.schema');
+const { successResponse } = require('../../utils/successResponse.util');
+
 const UsersService = require('./users.service');
 
 const router = Router();
@@ -14,32 +19,44 @@ router.get('/', (req, res) => {
   res.json(users);
 });
 
-router.get('/:id', (req, res) => {
-  const { id } = req.params;
-  const user = usersService.findOne(id);
+router.get('/:id',
+  validatorHandler(getUserSchema, 'params'),
+  (req, res) => {
+    const { id } = req.params;
+    const user = usersService.findOne(id);
 
-  if (!user) {
-    return res.status(404).json({
-      ok: false,
-      msg: 'User not found'
-    });
+    if (!user) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'User not found'
+      });
+    }
+    const response = successResponse(user);
+    res.json(response);
   }
+);
 
-  res.json(user);
-});
+router.post('/',
+  validatorHandler(createUserSchema, 'body'),
+  (req, res) => {
+    const data = req.body;
+    const newUser = usersService.create(data);
+    const response = successResponse(newUser, `User ${newUser.id} created`)
+    res.status(201).json(response);
+  }
+);
 
-router.post('/', (req, res) => {
-  const data = req.body;
-  const newUser = usersService.create(data);
-  res.status(201).json(newUser);
-});
-
-router.patch('/:id', (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-  const patchedUser = usersService.update(id, data);
-  res.json(patchedUser);
-});
+router.patch('/:id',
+  validatorHandler(getUserSchema, 'params'),
+  validatorHandler(updateUserSchema, 'body'),
+  (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+    const patchedUser = usersService.update(id, data);
+    const response = successResponse(patchedUser);
+    res.json(response);
+  }
+);
 
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
