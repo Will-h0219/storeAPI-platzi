@@ -13,10 +13,13 @@ const UsersService = require('./users.service');
 const router = Router();
 const usersService = new UsersService();
 
-router.get('/', (req, res) => {
-  const users = usersService.find();
-
-  res.json(users);
+router.get('/', async (req, res, next) => {
+  try {
+    const users = await usersService.find();
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.get('/:id',
